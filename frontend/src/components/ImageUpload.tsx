@@ -121,7 +121,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
 
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
 
-      <style jsx>{`
+      <style>{`
         .animation-delay-1000 {
           animation-delay: 1s;
         }
