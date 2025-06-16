@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from utils import load_model, predict_disease, get_treatment
+from backend.utils import load_model, predict_disease, get_treatment
 from PIL import Image
 import io
 
