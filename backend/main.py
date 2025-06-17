@@ -4,7 +4,7 @@ from PIL import Image
 import io
 
 from backend.utils import (
-    load_disease_model,
+    load_model,
     load_leaf_classifier,
     is_leaf_image,
     predict_disease,
@@ -21,7 +21,7 @@ app.add_middleware(
 )
 
 # Load models once
-disease_model, class_names = load_disease_model()
+disease_model, class_names = load_model()
 leaf_model = load_leaf_classifier()
 
 @app.post("/predict")

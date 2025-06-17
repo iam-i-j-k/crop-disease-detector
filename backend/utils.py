@@ -42,9 +42,33 @@ def predict_disease(model, class_names, image: Image.Image):
         print("[DEBUG] Model output:", output)
         _, predicted = torch.max(output, 1)
         return class_names[predicted.item()]
+    
+def load_leaf_classifier():
+    base_dir = os.path.dirname(__file__)
+    model_path = os.path.join(base_dir, "../model/leaf_classifier.pth")
+
+    model = models.resnet18(pretrained=False)
+    model.fc = nn.Linear(model.fc.in_features, 2)  # Binary classification: leaf / not leaf
+    model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))
+    model.eval()
+
+    return model
+
 
 def get_treatment(disease):
     treatment_path = os.path.join(os.path.dirname(__file__), "../disease_treatments.json")
     with open(treatment_path) as f:
         treatment_dict = json.load(f)
     return treatment_dict.get(disease, "No treatment recommendation available.")
+
+def is_leaf_image(model, image: Image.Image, threshold: float = 0.5) -> bool:
+    input_tensor = transform(image).unsqueeze(0)
+
+    with torch.no_grad():
+        output = model(input_tensor)
+        probabilities = torch.softmax(output, dim=1)
+        leaf_confidence = probabilities[0][1].item()  # Confidence for "leaf" class
+
+        print(f"[DEBUG] Leaf confidence: {leaf_confidence:.4f}")
+        return leaf_confidence > threshold
+
