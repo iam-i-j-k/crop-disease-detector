@@ -12,7 +12,7 @@ def load_disease_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Dynamically load class names from dataset structure
-    dataset_dir = "dataset/train"  # Adjust this path as needed
+    dataset_dir = "data/raw"  # Adjust this path as needed
     class_names = sorted(entry.name for entry in os.scandir(dataset_dir) if entry.is_dir())
 
     # Load MobileNetV2 and adjust classifier for the number of classes
@@ -20,7 +20,7 @@ def load_disease_model():
     model.classifier[1] = nn.Linear(model.last_channel, len(class_names))
 
     # Load saved model weights
-    model_path = "model/disease_model.pth"
+    model_path = "backend/model/model.pth"
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
