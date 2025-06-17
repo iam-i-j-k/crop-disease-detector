@@ -1,8 +1,11 @@
 "use client"
 
 import type React from "react"
-import { useRef, useState } from "react"
-import { Upload, ImageIcon, Camera, Sparkles } from "lucide-react"
+import { useRef, useState, useCallback } from "react"
+import { Upload, ImageIcon, Camera, Sparkles, AlertCircle, CheckCircle2, FileImage } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ImageUploadProps {
   onImageSelect: (file: File) => void
@@ -11,127 +14,274 @@ interface ImageUploadProps {
 export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [isValidating, setIsValidating] = useState(false)
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const validateFile = useCallback((file: File): string | null => {
+    // File type validation
+    if (!file.type.startsWith("image/")) {
+      return "Please select a valid image file (JPG, PNG, JPEG, WebP)"
+    }
+
+    // File size validation (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      return "File size must be less than 10MB"
+    }
+
+    // File size minimum (to ensure quality)
+    if (file.size < 10 * 1024) {
+      return "File size too small. Please select a higher quality image"
+    }
+
+    return null
+  }, [])
+
+  const processFile = useCallback(
+    async (file: File) => {
+      setIsValidating(true)
+      setValidationError(null)
+      setUploadProgress(0)
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 100)
+
+      // Validate file
+      const error = validateFile(file)
+      if (error) {
+        setValidationError(error)
+        setIsValidating(false)
+        clearInterval(progressInterval)
+        setUploadProgress(0)
+        return
+      }
+
+      // Simulate processing time
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      setUploadProgress(100)
+      setTimeout(() => {
+        setIsValidating(false)
+        onImageSelect(file)
+      }, 200)
+    },
+    [validateFile, onImageSelect],
+  )
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(true)
-  }
+  }, [])
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(false)
-  }
+  }, [])
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(false)
 
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      const file = files[0]
-      if (file.type.startsWith("image/")) {
-        onImageSelect(file)
+      const files = e.dataTransfer.files
+      if (files.length > 0) {
+        processFile(files[0])
       }
-    }
-  }
+    },
+    [processFile],
+  )
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      onImageSelect(files[0])
-    }
-  }
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        processFile(files[0])
+      }
+    },
+    [processFile],
+  )
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     fileInputRef.current?.click()
-  }
+  }, [])
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
+      {/* Upload Area */}
       <div
-        onClick={handleClick}
+        onClick={!isValidating ? handleClick : undefined}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-3 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-all duration-300 min-h-[350px] flex flex-col items-center justify-center group ${
+        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 min-h-[400px] flex flex-col items-center justify-center group ${
           isDragOver
-            ? "border-green-400 bg-green-50 scale-105"
-            : "border-green-300 hover:border-green-400 hover:bg-green-50"
-        }`}
+            ? "border-green-400 bg-green-50 scale-[1.02] shadow-lg"
+            : isValidating
+              ? "border-blue-400 bg-blue-50"
+              : "border-gray-300 hover:border-green-400 hover:bg-green-50/50 cursor-pointer"
+        } ${isValidating ? "cursor-not-allowed" : ""}`}
       >
-        {/* Animated Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-8 left-8 w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
-          <div className="absolute top-16 right-12 w-2 h-2 bg-emerald-400 rounded-full animate-pulse animation-delay-1000"></div>
-          <div className="absolute bottom-12 left-16 w-3 h-3 bg-teal-400 rounded-full animate-pulse animation-delay-2000"></div>
-          <div className="absolute bottom-8 right-8 w-2 h-2 bg-green-500 rounded-full animate-pulse animation-delay-3000"></div>
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-8 left-8 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+          <div
+            className="absolute top-16 right-12 w-2 h-2 bg-emerald-400 rounded-full animate-pulse"
+            style={{ animationDelay: "1s" }}
+          ></div>
+          <div
+            className="absolute bottom-12 left-16 w-4 h-4 bg-teal-400 rounded-full animate-pulse"
+            style={{ animationDelay: "2s" }}
+          ></div>
+          <div
+            className="absolute bottom-8 right-8 w-2 h-2 bg-green-500 rounded-full animate-pulse"
+            style={{ animationDelay: "3s" }}
+          ></div>
         </div>
 
-        <div className="space-y-6 relative z-10">
-          {/* Enhanced Icon */}
-          <div className="relative mx-auto">
+        <div className="space-y-6 relative z-10 w-full max-w-md">
+          {/* Icon */}
+          <div className="relative mx-auto w-fit">
             <div
-              className={`w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
-                isDragOver ? "scale-110 rotate-12" : "group-hover:scale-110"
+              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+                isDragOver
+                  ? "bg-gradient-to-br from-green-400 to-emerald-500 scale-110 rotate-12"
+                  : isValidating
+                    ? "bg-gradient-to-br from-blue-400 to-blue-500 animate-pulse"
+                    : "bg-gradient-to-br from-gray-400 to-gray-500 group-hover:from-green-400 group-hover:to-emerald-500 group-hover:scale-110"
               }`}
             >
-              <Upload className="w-10 h-10 text-white" />
+              {isValidating ? (
+                <FileImage className="w-10 h-10 text-white" />
+              ) : (
+                <Upload className="w-10 h-10 text-white" />
+              )}
             </div>
             <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
               <Sparkles className="w-3 h-3 text-white" />
             </div>
           </div>
 
+          {/* Content */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-gray-800">
-              {isDragOver ? "Drop your image here!" : "Upload Crop Image"}
+            <h3 className="text-2xl font-bold text-gray-900">
+              {isDragOver ? "Drop your image here!" : isValidating ? "Processing image..." : "Upload Crop Image"}
             </h3>
-            <p className="text-gray-600 text-lg">
-              {isDragOver ? "Release to analyze your crop" : "Drag and drop an image here, or click to select"}
+            <p className="text-gray-600 text-lg leading-relaxed">
+              {isDragOver
+                ? "Release to start analysis"
+                : isValidating
+                  ? "Validating and preparing your image"
+                  : "Drag and drop an image here, or click to browse"}
             </p>
           </div>
 
-          {/* Enhanced File Type Info */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500">
-            <div className="flex items-center gap-2 bg-white/80 px-3 py-2 rounded-full shadow-sm">
-              <ImageIcon className="w-4 h-4 text-green-600" />
-              <span>JPG, PNG, JPEG</span>
+          {/* Progress Bar */}
+          {isValidating && (
+            <div className="w-full space-y-2">
+              <Progress value={uploadProgress} className="h-2" />
+              <p className="text-sm text-gray-500">{uploadProgress}% complete</p>
             </div>
-            <div className="flex items-center gap-2 bg-white/80 px-3 py-2 rounded-full shadow-sm">
-              <Camera className="w-4 h-4 text-green-600" />
-              <span>Max 10MB</span>
-            </div>
-          </div>
+          )}
 
-          {/* Upload Tips */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200">
-            <h4 className="font-semibold text-green-800 mb-2">📸 Tips for best results:</h4>
-            <ul className="text-sm text-green-700 space-y-1 text-left">
-              <li>• Ensure good lighting and clear focus</li>
-              <li>• Capture affected leaves or plant parts</li>
-              <li>• Avoid blurry or dark images</li>
-              <li>• Include multiple symptoms if visible</li>
-            </ul>
+          {/* File Requirements */}
+          {!isValidating && (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-xl shadow-sm border border-gray-100">
+                <ImageIcon className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <span className="text-gray-700">JPG, PNG, JPEG, WebP</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-xl shadow-sm border border-gray-100">
+                <Camera className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <span className="text-gray-700">Max 10MB</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {validationError && (
+        <Alert variant="destructive" className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="font-medium">{validationError}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Professional Tips */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-blue-900 mb-3">📸 Professional Photography Tips</h4>
+            <div className="grid md:grid-cols-2 gap-3 text-sm text-blue-800">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Use natural daylight when possible</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Focus on affected plant areas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Avoid shadows and reflections</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Capture multiple symptoms if visible</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Ensure image is sharp and clear</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Include healthy parts for comparison</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+      {/* Alternative Upload Button */}
+      {!isValidating && (
+        <div className="text-center">
+          <Button
+            onClick={handleClick}
+            variant="outline"
+            className="border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 px-8 py-3 rounded-xl font-medium transition-all duration-300"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Browse Files
+          </Button>
+        </div>
+      )}
 
-      <style>{`
-        .animation-delay-1000 {
-          animation-delay: 1s;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-3000 {
-          animation-delay: 3s;
-        }
-      `}</style>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        disabled={isValidating}
+      />
     </div>
   )
 }
