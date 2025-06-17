@@ -10,8 +10,8 @@ import os
 def load_model():
     # Define relative paths
     base_dir = os.path.dirname(__file__)
-    model_path = os.path.join(base_dir, "../model/model.pth")
-    class_path = os.path.join(base_dir, "../model/class_names.json")
+    model_path = os.path.join(base_dir, "backend/model/model.pth")
+    class_path = os.path.join(base_dir, "backend/model/class_names.json")
 
     # Load class labels
     with open(class_path) as f:
