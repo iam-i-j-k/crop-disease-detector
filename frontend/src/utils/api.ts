@@ -1,3 +1,10 @@
+const API_BASE_URL = 'https://crop-disease-detector-y3dn.onrender.com';
+
+export interface PredictionResponse {
+  prediction: string;
+  treatment: string;
+}
+
 export const predictDisease = async (imageFile: File): Promise<PredictionResponse | { detail: string }> => {
   const formData = new FormData();
   formData.append('file', imageFile);
@@ -30,3 +37,4 @@ export const predictDisease = async (imageFile: File): Promise<PredictionRespons
   console.log('Mapped result:', mappedResult);
   return mappedResult;
 };
+
