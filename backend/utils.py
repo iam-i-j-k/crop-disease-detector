@@ -3,19 +3,28 @@ from torchvision import models, transforms
 from PIL import Image
 import json
 import os
+import torch.nn as nn
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load disease detection model
 def load_disease_model():
-    model_path = "backend/model/model.pth"
-    with open("backend/model/class_names.json", "r") as f:
-        class_names = json.load(f)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Dynamically load class names from dataset structure
+    dataset_dir = "dataset/train"  # Adjust this path as needed
+    class_names = sorted(entry.name for entry in os.scandir(dataset_dir) if entry.is_dir())
+
+    # Load MobileNetV2 and adjust classifier for the number of classes
     model = models.mobilenet_v2(pretrained=False)
-    model.classifier[1] = torch.nn.Linear(model.last_channel, len(class_names))
+    model.classifier[1] = nn.Linear(model.last_channel, len(class_names))
+
+    # Load saved model weights
+    model_path = "model/disease_model.pth"
     model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
     model.eval()
+
     return model, class_names
 
 # Load binary leaf classifier model
