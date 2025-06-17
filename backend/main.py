@@ -1,14 +1,18 @@
-# backend/main.py
-
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from backend.utils import load_model, predict_disease, get_treatment
 from PIL import Image
 import io
 
+from backend.utils import (
+    load_disease_model,
+    load_leaf_classifier,
+    is_leaf_image,
+    predict_disease,
+    get_treatment
+)
+
 app = FastAPI()
 
-# Allow frontend requests (Day 3)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*", "https://crop-disease-detector-zeta.vercel.app"],
@@ -16,22 +20,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load model and class labels once
-model, class_names = load_model()
-
-@app.get("/")
-def root():
-    return {"message": "Crop Disease Detection API running"}
+# Load models once
+disease_model, class_names = load_disease_model()
+leaf_model = load_leaf_classifier()
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()
     image = Image.open(io.BytesIO(contents)).convert("RGB")
-    
-    disease = predict_disease(model, class_names, image)
+
+    if not is_leaf_image(leaf_model, image):
+        raise HTTPException(status_code=400, detail="Uploaded image is not a leaf.")
+
+    disease = predict_disease(disease_model, class_names, image)
     treatment = get_treatment(disease)
 
     return {
-        "disease": disease,
+        "prediction": disease,
         "treatment": treatment
     }

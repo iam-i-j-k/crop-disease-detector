@@ -1,11 +1,4 @@
-const API_BASE_URL = 'https://crop-disease-detector-y3dn.onrender.com';
-
-export interface PredictionResponse {
-  prediction: string;
-  treatment: string;
-}
-
-export const predictDisease = async (imageFile: File): Promise<PredictionResponse> => {
+export const predictDisease = async (imageFile: File): Promise<PredictionResponse | { detail: string }> => {
   const formData = new FormData();
   formData.append('file', imageFile);
 
@@ -19,22 +12,21 @@ export const predictDisease = async (imageFile: File): Promise<PredictionRespons
 
   console.log('API Response status:', response.status);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('API Error response:', errorText);
-    throw new Error(`Failed to predict disease: ${response.status} ${response.statusText}`);
-  }
-
+  // Always parse response as JSON (even for errors)
   const result = await response.json();
   console.log('Raw API result:', result);
-  
-  // Map the backend response format to frontend format
+
+  // Handle non-leaf rejection from backend
+  if (!response.ok) {
+    return result; // May contain: { detail: "Uploaded image is not a leaf." }
+  }
+
+  // Return disease prediction
   const mappedResult: PredictionResponse = {
     prediction: result.disease || result.prediction || 'Unknown disease',
-    treatment: result.treatment || 'No treatment available'
+    treatment: result.treatment || 'No treatment available',
   };
-  
+
   console.log('Mapped result:', mappedResult);
-  
   return mappedResult;
 };
