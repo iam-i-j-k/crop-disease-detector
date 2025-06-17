@@ -1,71 +1,50 @@
+# backend/utils.py
+
 import torch
+import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
 import json
 import os
-import torch.nn as nn
 
+def load_model():
+    # Define relative paths
+    base_dir = os.path.dirname(__file__)
+    model_path = os.path.join(base_dir, "../model/model.pth")
+    class_path = os.path.join(base_dir, "../model/class_names.json")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Load class labels
+    with open(class_path) as f:
+        class_names = json.load(f)
 
-def load_disease_model():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Transforms
+    global transform
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+    ])
 
-    # Dynamically load class names from dataset structure
-    dataset_dir = "data/raw"  # Adjust this path as needed
-    class_names = sorted(entry.name for entry in os.scandir(dataset_dir) if entry.is_dir())
-
-    # Load MobileNetV2 and adjust classifier for the number of classes
-    model = models.mobilenet_v2(pretrained=False)
-    model.classifier[1] = nn.Linear(model.last_channel, len(class_names))
-
-    # Load saved model weights
-    model_path = "backend/model/model.pth"
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.to(device)
+    # Load model
+    model = models.resnet18(pretrained=False)
+    model.fc = nn.Linear(model.fc.in_features, len(class_names))
+    model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))
     model.eval()
 
     return model, class_names
 
-# Load binary leaf classifier model
-def load_leaf_classifier():
-    model = models.mobilenet_v2(pretrained=False)
-    model.classifier[1] = torch.nn.Linear(model.last_channel, 2)
-    model.load_state_dict(torch.load("backend/model/leaf_binary_classifier.pth", map_location=device))
-    model.eval()
-    return model
-
-# Check if uploaded image is a leaf
-def is_leaf_image(leaf_model, image: Image.Image):
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-    tensor = transform(image).unsqueeze(0).to(device)
-
+def predict_disease(model, class_names, image: Image.Image):
+    print("[DEBUG] Image received for prediction.")
+    input_tensor = transform(image).unsqueeze(0)
     with torch.no_grad():
-        pred = leaf_model(tensor)
-        _, pred_class = torch.max(pred, 1)
-        return pred_class.item() == 0  # 0 = leaf
+        output = model(input_tensor)
+        print("[DEBUG] Model output:", output)
+        _, predicted = torch.max(output, 1)
+        return class_names[predicted.item()]
 
-# Predict crop disease
-def predict_disease(disease_model, class_names, image: Image.Image):
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-    tensor = transform(image).unsqueeze(0).to(device)
-
-    with torch.no_grad():
-        outputs = disease_model(tensor)
-        _, predicted = torch.max(outputs, 1)
-    return class_names[predicted.item()]
-
-# Treatment lookup
-def get_treatment(disease_name: str):
-    treatments = {
-        "Apple___Black_rot": "Remove infected fruit and apply fungicide.",
-        "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": "Rotate crops and use resistant varieties.",
-        # Add more mappings...
-    }
-    return treatments.get(disease_name, "No treatment available.")
+def get_treatment(disease):
+    treatment_path = os.path.join(os.path.dirname(__file__), "../disease_treatments.json")
+    with open(treatment_path) as f:
+        treatment_dict = json.load(f)
+    return treatment_dict.get(disease, "No treatment recommendation available.")
