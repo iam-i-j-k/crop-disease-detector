@@ -11,8 +11,9 @@ app = FastAPI()
 # Allow frontend requests (Day 3)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
-    allow_origins=["https://crop-disease-detector-zeta.vercel.app"]
+    allow_origins=["*", "https://crop-disease-detector-zeta.vercel.app"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Load model and class labels once
