@@ -117,14 +117,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
   }, [])
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* Upload Area */}
       <div
         onClick={!isValidating ? handleClick : undefined}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 min-h-[400px] flex flex-col items-center justify-center group ${
+        className={`relative border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all duration-300 min-h-[280px] sm:min-h-[400px] flex flex-col items-center justify-center group ${
           isDragOver
             ? "border-green-400 bg-green-50 scale-[1.02] shadow-lg"
             : isValidating
@@ -134,26 +134,26 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
-          <div className="absolute top-8 left-8 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+          <div className="absolute top-4 sm:top-8 left-4 sm:left-8 w-2 sm:w-3 h-2 sm:h-3 bg-green-400 rounded-full animate-pulse"></div>
           <div
-            className="absolute top-16 right-12 w-2 h-2 bg-emerald-400 rounded-full animate-pulse"
+            className="absolute top-8 sm:top-16 right-6 sm:right-12 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-emerald-400 rounded-full animate-pulse"
             style={{ animationDelay: "1s" }}
           ></div>
           <div
-            className="absolute bottom-12 left-16 w-4 h-4 bg-teal-400 rounded-full animate-pulse"
+            className="absolute bottom-6 sm:bottom-12 left-8 sm:left-16 w-3 sm:w-4 h-3 sm:h-4 bg-teal-400 rounded-full animate-pulse"
             style={{ animationDelay: "2s" }}
           ></div>
           <div
-            className="absolute bottom-8 right-8 w-2 h-2 bg-green-500 rounded-full animate-pulse"
+            className="absolute bottom-4 sm:bottom-8 right-4 sm:right-8 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-green-500 rounded-full animate-pulse"
             style={{ animationDelay: "3s" }}
           ></div>
         </div>
 
-        <div className="space-y-6 relative z-10 w-full max-w-md">
+        <div className="space-y-4 sm:space-y-6 relative z-10 w-full max-w-md">
           {/* Icon */}
           <div className="relative mx-auto w-fit">
             <div
-              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
                 isDragOver
                   ? "bg-gradient-to-br from-green-400 to-emerald-500 scale-110 rotate-12"
                   : isValidating
@@ -162,27 +162,27 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
               }`}
             >
               {isValidating ? (
-                <FileImage className="w-10 h-10 text-white" />
+                <FileImage className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               ) : (
-                <Upload className="w-10 h-10 text-white" />
+                <Upload className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               )}
             </div>
-            <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-white" />
+            <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+              <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
             </div>
           </div>
 
           {/* Content */}
-          <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-gray-900">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
               {isDragOver ? "Drop your image here!" : isValidating ? "Processing image..." : "Upload Crop Image"}
             </h3>
-            <p className="text-gray-600 text-lg leading-relaxed">
+            <p className="text-gray-600 text-base sm:text-lg leading-relaxed px-2">
               {isDragOver
                 ? "Release to start analysis"
                 : isValidating
                   ? "Validating and preparing your image"
-                  : "Drag and drop an image here, or click to browse"}
+                  : "Drag and drop an image here, or tap to browse"}
             </p>
           </div>
 
@@ -196,14 +196,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
 
           {/* File Requirements */}
           {!isValidating && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-xl shadow-sm border border-gray-100">
-                <ImageIcon className="w-4 h-4 text-green-600 flex-shrink-0" />
-                <span className="text-gray-700">JPG, PNG, JPEG, WebP</span>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
+              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl shadow-sm border border-gray-100">
+                <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                <span className="text-gray-700 text-xs sm:text-sm">JPG, PNG, JPEG</span>
               </div>
-              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-3 rounded-xl shadow-sm border border-gray-100">
-                <Camera className="w-4 h-4 text-green-600 flex-shrink-0" />
-                <span className="text-gray-700">Max 10MB</span>
+              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl shadow-sm border border-gray-100">
+                <Camera className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                <span className="text-gray-700 text-xs sm:text-sm">Max 10MB</span>
               </div>
             </div>
           )}
@@ -214,45 +214,45 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
       {validationError && (
         <Alert variant="destructive" className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="font-medium">{validationError}</AlertDescription>
+          <AlertDescription className="font-medium text-sm">{validationError}</AlertDescription>
         </Alert>
       )}
 
-      {/* Professional Tips */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="w-5 h-5 text-blue-600" />
+      {/* Mobile-optimized Professional Tips */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-100">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
-          <div>
-            <h4 className="font-semibold text-blue-900 mb-3">📸 Professional Photography Tips</h4>
-            <div className="grid md:grid-cols-2 gap-3 text-sm text-blue-800">
-              <div className="space-y-2">
+          <div className="flex-1">
+            <h4 className="font-semibold text-blue-900 mb-2 sm:mb-3 text-sm sm:text-base">📸 Photography Tips</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-blue-800">
+              <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Use natural daylight when possible</span>
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Use natural daylight</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Focus on affected plant areas</span>
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Focus on affected areas</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Avoid shadows and reflections</span>
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Avoid shadows</span>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Capture multiple symptoms if visible</span>
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Capture multiple symptoms</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Ensure image is sharp and clear</span>
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Ensure sharp focus</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <span>Include healthy parts for comparison</span>
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <span>Include healthy parts</span>
                 </div>
               </div>
             </div>
@@ -266,9 +266,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
           <Button
             onClick={handleClick}
             variant="outline"
-            className="border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 px-8 py-3 rounded-xl font-medium transition-all duration-300"
+            className="border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 px-6 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 text-sm sm:text-base"
           >
-            <Upload className="w-4 h-4 mr-2" />
+            <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Browse Files
           </Button>
         </div>
