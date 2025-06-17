@@ -260,28 +260,19 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
         </div>
       </div>
 
-      {/* Alternative Upload Button */}
-      {!isValidating && (
-        <div className="text-center">
-          <Button
-            onClick={handleClick}
-            variant="outline"
-            className="border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 px-6 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 text-sm sm:text-base"
-          >
-            <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            Browse Files
-          </Button>
-        </div>
-      )}
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={isValidating}
-      />
+      <style>{`
+        .animation-delay-1000 {
+          animation-delay: 1s;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-3000 {
+          animation-delay: 3s;
+        }
+      `}</style>
     </div>
   )
 }
