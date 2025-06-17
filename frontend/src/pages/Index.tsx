@@ -546,7 +546,7 @@ const handleShare = async () => {
         </footer>
       </div>
 
-      <style>{`
+      <style jsx>{`
         @keyframes blob {
           0% {
             transform: translate(0px, 0px) scale(1);
