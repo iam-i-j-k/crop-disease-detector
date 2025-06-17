@@ -58,43 +58,45 @@ const Index = () => {
   }
 
 const handlePredict = async () => {
-  if (!selectedImage) return
+  if (!selectedImage) return;
 
-  setIsLoading(true)
+  setIsLoading(true);
   try {
-    const result = await predictDisease(selectedImage)
+    const result = await predictDisease(selectedImage);
 
-    // Handle custom error message from backend
-    if ((result as any).detail === "Uploaded image is not a leaf.") {
+    // Check if it's a leaf rejection message (narrowing type)
+    if ('detail' in result) {
       toast({
         title: "Invalid Image",
         description: "Please upload a valid leaf image.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setPredictionResult(result)
+    // Now TypeScript knows result is PredictionResponse
+    setPredictionResult(result);
 
     const analysisTime = analysisStartTime
       ? ((new Date().getTime() - analysisStartTime.getTime()) / 1000).toFixed(1)
-      : "0"
+      : "0";
 
     toast({
       title: "Analysis completed successfully",
       description: `Disease detection completed in ${analysisTime}s`,
-    })
+    });
   } catch (error) {
-    console.error("Prediction error:", error)
+    console.error("Prediction error:", error);
     toast({
       title: "Analysis failed",
       description: "Unable to analyze the image. Please try again with a different image.",
       variant: "destructive",
-    })
+    });
   } finally {
-    setIsLoading(false)
+    setIsLoading(false);
   }
-}
+};
+
 
 
   const handleReset = () => {
