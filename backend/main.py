@@ -24,6 +24,20 @@ app.add_middleware(
 disease_model, class_names = load_model()
 leaf_model = load_leaf_classifier()
 
+@app.post("/verify-leaf")
+async def verify_leaf(file: UploadFile = File(...)):
+    contents = await file.read()
+    try:
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image format.")
+
+    if not is_leaf_image(leaf_model, image):
+        raise HTTPException(status_code=400, detail="Uploaded image is not a leaf.")
+
+    return {"isLeaf": True}
+
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     contents = await file.read()

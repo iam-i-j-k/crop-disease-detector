@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { ImageUpload } from "@/components/ImageUpload"
 import { PredictionResults } from "@/components/PredictionResults"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { predictDisease } from "@/utils/api"
+import { predictDisease, verifyLeaf } from "@/utils/api"
 import { useToast } from "@/hooks/use-toast"
 import { Leaf, Microscope, Shield, TrendingUp, ArrowLeft, Download, Share2, History, Info, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ const Index = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isVerifyingLeaf, setIsVerifyingLeaf] = useState(false)
   const [predictionResult, setPredictionResult] = useState<PredictionData | null>(null)
   const [analysisStartTime, setAnalysisStartTime] = useState<Date | null>(null)
   const [currentStep, setCurrentStep] = useState(0)
@@ -39,9 +40,10 @@ const Index = () => {
     }
   }, [isLoading])
 
-  const handleImageSelect = (file: File) => {
+  const handleImageSelect = async (file: File) => {
     setSelectedImage(file)
     setPredictionResult(null)
+    setIsVerifyingLeaf(true)
 
     // Create preview URL with proper cleanup
     const reader = new FileReader()
@@ -50,60 +52,92 @@ const Index = () => {
     }
     reader.readAsDataURL(file)
 
-    // Show success toast for file selection
-    toast({
-      title: "Image uploaded successfully",
-      description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
-    })
-  }
+    try {
+      // First verify if the uploaded image is a leaf
+      const isLeaf = await verifyLeaf(file)
 
-const handlePredict = async () => {
-  if (!selectedImage) return;
+      if (!isLeaf) {
+        // If not a leaf, show error and reset
+        toast({
+          title: "Invalid Image",
+          description: "Please upload a valid leaf image. The uploaded image does not appear to be a leaf.",
+          variant: "destructive",
+        })
 
-  setIsLoading(true);
-  try {
-    const result = await predictDisease(selectedImage);
+        // Reset the state
+        setSelectedImage(null)
+        setImagePreview(null)
+        setIsVerifyingLeaf(false)
+        return
+      }
 
-    // Check if it's a leaf rejection message (narrowing type)
-    if ('detail' in result) {
+      // If it's a valid leaf, show success
       toast({
-        title: "Invalid Image",
-        description: "Please upload a valid leaf image.",
+        title: "Leaf verified successfully",
+        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Ready for disease analysis`,
+      })
+    } catch (error) {
+      console.error("Leaf verification error:", error)
+      toast({
+        title: "Verification failed",
+        description: "Unable to verify the image. Please try again with a clear leaf image.",
         variant: "destructive",
-      });
-      return;
+      })
+
+      // Reset the state on error
+      setSelectedImage(null)
+      setImagePreview(null)
+    } finally {
+      setIsVerifyingLeaf(false)
     }
-
-    // Now TypeScript knows result is PredictionResponse
-    setPredictionResult(result);
-
-    const analysisTime = analysisStartTime
-      ? ((new Date().getTime() - analysisStartTime.getTime()) / 1000).toFixed(1)
-      : "0";
-
-    toast({
-      title: "Analysis completed successfully",
-      description: `Disease detection completed in ${analysisTime}s`,
-    });
-  } catch (error) {
-    console.error("Prediction error:", error);
-    toast({
-      title: "Analysis failed",
-      description: "Unable to analyze the image. Please try again with a different image.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
   }
-};
 
+  const handlePredict = async () => {
+    if (!selectedImage) return
 
+    setIsLoading(true)
+    try {
+      const result = await predictDisease(selectedImage)
+
+      // Check if it's a leaf rejection message (narrowing type)
+      if ("detail" in result) {
+        toast({
+          title: "Invalid Image",
+          description: result.detail || "Please upload a valid leaf image.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Now TypeScript knows result is PredictionResponse
+      setPredictionResult(result)
+
+      const analysisTime = analysisStartTime
+        ? ((new Date().getTime() - analysisStartTime.getTime()) / 1000).toFixed(1)
+        : "0"
+
+      toast({
+        title: "Analysis completed successfully",
+        description: `Disease detection completed in ${analysisTime}s`,
+      })
+    } catch (error) {
+      console.error("Prediction error:", error)
+      toast({
+        title: "Analysis failed",
+        description: "Unable to analyze the image. Please try again with a different image.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleReset = () => {
     setSelectedImage(null)
     setImagePreview(null)
     setPredictionResult(null)
     setCurrentStep(0)
+    setIsVerifyingLeaf(false)
 
     toast({
       title: "Session reset",
@@ -129,7 +163,7 @@ Generated by AgriScan AI
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${predictionResult.prediction}crop-analysis-${new Date().toISOString().split("T")[0]}.txt`
+    a.download = `${predictionResult.prediction}-analysis-${new Date().toISOString().split("T")[0]}.txt`
     a.click()
     URL.revokeObjectURL(url)
 
@@ -139,43 +173,47 @@ Generated by AgriScan AI
     })
   }
 
-const handleShare = async () => {
-  if (!predictionResult) return
+  const handleShare = async () => {
+    if (!predictionResult) return
 
-  const shareText = `Disease detected: ${predictionResult.prediction}\nTreatment: ${predictionResult.treatment}`
+    const shareText = `Disease detected: ${predictionResult.prediction}\nTreatment: ${predictionResult.treatment}`
 
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "AgriScan AI Analysis",
-        text: shareText,
-        url: window.location.href,
-      })
-    } catch (error) {
-      console.log("Share cancelled or failed", error)
-    }
-  } else if (navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(shareText)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "AgriScan AI Analysis",
+          text: shareText,
+          url: window.location.href,
+        })
+      } catch (error) {
+        toast({
+          title: "Share failed",
+          description: "Couldn't share the analysis results",
+          variant: "destructive",
+        })
+      }
+    } else if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareText)
+        toast({
+          title: "Copied to clipboard",
+          description: "Analysis results copied to clipboard",
+        })
+      } catch (err) {
+        toast({
+          title: "Copy failed",
+          description: "Couldn't write to clipboard",
+          variant: "destructive",
+        })
+      }
+    } else {
       toast({
-        title: "Copied to clipboard",
-        description: "Analysis results copied to clipboard",
-      })
-    } catch (err) {
-      toast({
-        title: "Copy failed",
-        description: "Couldn't write to clipboard",
+        title: "Sharing not supported",
+        description: "Clipboard and native sharing are unavailable",
         variant: "destructive",
       })
     }
-  } else {
-    toast({
-      title: "Sharing not supported",
-      description: "Clipboard and native sharing are unavailable",
-      variant: "destructive",
-    })
   }
-}
 
   // Mobile menu component
   const MobileMenu = () => (
@@ -224,7 +262,7 @@ const handleShare = async () => {
                 <p className="text-xs text-gray-500 hidden sm:block">Professional Crop Analysis</p>
               </div>
             </div>
-            
+
             {/* Desktop menu */}
             <div className="hidden md:flex items-center gap-2">
               <Badge variant="outline" className="text-green-700 border-green-200">
@@ -268,11 +306,14 @@ const handleShare = async () => {
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 tracking-tight leading-tight">
             Professional Crop
             <br className="sm:hidden" />
-            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent"> Health Analysis</span>
+            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              {" "}
+              Health Analysis
+            </span>
           </h1>
           <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-2">
-            Upload high-quality images of your crops to receive instant AI-powered disease detection 
-            and evidence-based treatment recommendations
+            Upload high-quality images of your crops to receive instant AI-powered disease detection and evidence-based
+            treatment recommendations
           </p>
 
           {/* Mobile-optimized trust indicators */}
@@ -297,18 +338,19 @@ const handleShare = async () => {
           {!selectedImage ? (
             /* Upload Section */
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-xl border border-white/50 p-4 sm:p-8 hover:shadow-2xl transition-all duration-500">
-              <ImageUpload onImageSelect={handleImageSelect} />
+              <ImageUpload onImageSelect={handleImageSelect} isVerifying={isVerifyingLeaf} />
             </div>
           ) : (
             /* Analysis Section */
             <div className="space-y-4 sm:space-y-8">
               {/* Mobile-optimized Breadcrumb Navigation */}
               <nav className="flex items-center gap-2 text-sm text-gray-600 px-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleReset}
                   className="text-gray-600 hover:text-gray-900 p-2 h-auto"
+                  disabled={isVerifyingLeaf || isLoading}
                 >
                   <ArrowLeft className="w-4 h-4 mr-1" />
                   <span className="hidden sm:inline">Back to Upload</span>
@@ -336,14 +378,14 @@ const handleShare = async () => {
                         </div>
                         <h3 className="text-lg sm:text-2xl font-bold text-gray-900">Image Preview</h3>
                       </div>
-                      
+
                       {/* Mobile-optimized image metadata */}
                       <div className="text-right text-xs sm:text-sm text-gray-500">
                         <p className="truncate max-w-24 sm:max-w-none">{selectedImage?.name}</p>
                         <p>{selectedImage ? (selectedImage.size / 1024 / 1024).toFixed(2) : 0} MB</p>
                       </div>
                     </div>
-                    
+
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-xl sm:rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative bg-gray-100 rounded-xl sm:rounded-2xl overflow-hidden border-2 sm:border-4 border-white shadow-lg">
@@ -353,8 +395,12 @@ const handleShare = async () => {
                           className="w-full h-48 sm:h-64 lg:h-80 object-cover"
                         />
                         <div className="absolute top-2 sm:top-4 right-2 sm:right-4">
-                          <Badge className="bg-white/90 text-gray-700 border-0 text-xs sm:text-sm">
-                            Ready for Analysis
+                          <Badge
+                            className={`border-0 text-xs sm:text-sm ${
+                              isVerifyingLeaf ? "bg-blue-100 text-blue-700" : "bg-white/90 text-gray-700"
+                            }`}
+                          >
+                            {isVerifyingLeaf ? "Verifying Leaf..." : "Leaf Verified ✓"}
                           </Badge>
                         </div>
                       </div>
@@ -366,19 +412,19 @@ const handleShare = async () => {
                         <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1 sm:mb-2">
                           <span className="text-green-600 text-xs sm:text-sm">✓</span>
                         </div>
-                        <p className="text-xs font-medium text-green-800">High Resolution</p>
+                        <p className="text-xs font-medium text-green-800">Leaf Detected</p>
                       </div>
                       <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg sm:rounded-xl border border-green-100">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1 sm:mb-2">
                           <span className="text-green-600 text-xs sm:text-sm">✓</span>
                         </div>
-                        <p className="text-xs font-medium text-green-800">Good Lighting</p>
+                        <p className="text-xs font-medium text-green-800">Good Quality</p>
                       </div>
                       <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg sm:rounded-xl border border-green-100">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1 sm:mb-2">
                           <span className="text-green-600 text-xs sm:text-sm">✓</span>
                         </div>
-                        <p className="text-xs font-medium text-green-800">Clear Focus</p>
+                        <p className="text-xs font-medium text-green-800">Ready to Analyze</p>
                       </div>
                     </div>
                   </div>
@@ -404,7 +450,11 @@ const handleShare = async () => {
                           <span className="text-gray-600">Confidence:</span>
                           <span className="font-medium text-gray-900">85%</span>
                         </div>
-                        <div className="flex justify-between sm:col-span-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Leaf Status:</span>
+                          <span className="font-medium text-green-600">Verified ✓</span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-gray-600">Mode:</span>
                           <span className="font-medium text-gray-900">High Accuracy</span>
                         </div>
@@ -415,18 +465,21 @@ const handleShare = async () => {
                     <div className="space-y-3 sm:space-y-4">
                       <Button
                         onClick={handlePredict}
-                        disabled={isLoading}
+                        disabled={isLoading || isVerifyingLeaf}
                         className="w-full h-12 sm:h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="flex items-center justify-center gap-2 sm:gap-3">
                           <Microscope className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <span className="text-sm sm:text-base">{isLoading ? "Analyzing..." : "Start AI Analysis"}</span>
+                          <span className="text-sm sm:text-base">
+                            {isLoading ? "Analyzing..." : isVerifyingLeaf ? "Verifying..." : "Start AI Analysis"}
+                          </span>
                         </div>
                       </Button>
 
                       <Button
                         onClick={handleReset}
                         variant="outline"
+                        disabled={isVerifyingLeaf || isLoading}
                         className="w-full h-10 sm:h-12 border-2 border-gray-200 hover:border-gray-300 rounded-xl sm:rounded-2xl font-medium text-sm sm:text-base"
                       >
                         Select Different Image
@@ -440,10 +493,10 @@ const handleShare = async () => {
                         Analysis Information
                       </h6>
                       <ul className="text-xs sm:text-sm text-blue-800 space-y-1">
+                        <li>• Leaf verification: Complete ✓</li>
                         <li>• Analysis time: 3-5 seconds</li>
                         <li>• Supports 50+ crop diseases</li>
                         <li>• Includes treatment recommendations</li>
-                        <li>• Results can be downloaded</li>
                       </ul>
                     </div>
                   </div>
@@ -473,7 +526,7 @@ const handleShare = async () => {
                       </div>
                       <h3 className="text-lg sm:text-2xl font-bold text-gray-900">Analysis Results</h3>
                     </div>
-                    
+
                     {/* Mobile-optimized action buttons */}
                     <div className="flex gap-1 sm:gap-2">
                       <TooltipProvider>
@@ -491,7 +544,7 @@ const handleShare = async () => {
                           <TooltipContent>Download Report</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      
+
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -509,11 +562,13 @@ const handleShare = async () => {
                       </TooltipProvider>
                     </div>
                   </div>
-                  
-                  <PredictionResults 
-                    prediction={predictionResult.prediction} 
+
+                  <PredictionResults
+                    prediction={predictionResult.prediction}
                     treatment={predictionResult.treatment}
-                    analysisTime={analysisStartTime ? ((new Date().getTime() - analysisStartTime.getTime()) / 1000).toFixed(1) : "0"}
+                    analysisTime={
+                      analysisStartTime ? ((new Date().getTime() - analysisStartTime.getTime()) / 1000).toFixed(1) : "0"
+                    }
                   />
                 </div>
               )}
@@ -545,32 +600,6 @@ const handleShare = async () => {
           </div>
         </footer>
       </div>
-
-      <style>{`
-        @keyframes blob {
-          0% {
-            transform: translate(0px, 0px) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-          100% {
-            transform: translate(0px, 0px) scale(1);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   )
 }

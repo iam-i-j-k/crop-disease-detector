@@ -1,27 +1,42 @@
-const API_BASE_URL = 'https://crop-disease-detector-y3dn.onrender.com';
+const API_BASE_URL = 'http://127.0.0.1:8000'; // Update with your actual API base URL
 
 export interface PredictionResponse {
   prediction: string;
   treatment: string;
 }
 
+export const verifyLeaf = async (imageFile: File): Promise<boolean> => {
+  const formData = new FormData();
+  formData.append('file', imageFile);
+
+  const response = await fetch(`${API_BASE_URL}/verify-leaf`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.warn('Leaf verification failed:', error.detail);
+    return false;
+  }
+
+  return true;
+};
+
+
 export const predictDisease = async (imageFile: File): Promise<PredictionResponse | { detail: string }> => {
   const formData = new FormData();
   formData.append('file', imageFile);
 
-  console.log('Sending prediction request to:', `${API_BASE_URL}/predict`);
-  console.log('File details:', { name: imageFile.name, size: imageFile.size, type: imageFile.type });
 
   const response = await fetch(`${API_BASE_URL}/predict`, {
     method: 'POST',
     body: formData,
   });
 
-  console.log('API Response status:', response.status);
 
   // Always parse response as JSON (even for errors)
   const result = await response.json();
-  console.log('Raw API result:', result);
 
   // Handle non-leaf rejection from backend
   if (!response.ok) {
@@ -34,7 +49,5 @@ export const predictDisease = async (imageFile: File): Promise<PredictionRespons
     treatment: result.treatment || 'No treatment available',
   };
 
-  console.log('Mapped result:', mappedResult);
   return mappedResult;
 };
-

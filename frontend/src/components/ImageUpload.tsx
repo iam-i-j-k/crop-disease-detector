@@ -2,16 +2,17 @@
 
 import type React from "react"
 import { useRef, useState, useCallback } from "react"
-import { Upload, ImageIcon, Camera, Sparkles, AlertCircle, CheckCircle2, FileImage } from "lucide-react"
+import { Upload, ImageIcon, Sparkles, AlertCircle, CheckCircle2, FileImage, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ImageUploadProps {
   onImageSelect: (file: File) => void
+  isVerifying?: boolean
 }
 
-export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
+export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect, isVerifying = false }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -113,24 +114,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
   )
 
   const handleClick = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
+    if (!isValidating && !isVerifying) {
+      fileInputRef.current?.click()
+    }
+  }, [isValidating, isVerifying])
+
+  const isProcessing = isValidating || isVerifying
 
   return (
     <div className="w-full space-y-4 sm:space-y-6">
       {/* Upload Area */}
       <div
-        onClick={!isValidating ? handleClick : undefined}
+        onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`relative border-2 border-dashed rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center transition-all duration-300 min-h-[280px] sm:min-h-[400px] flex flex-col items-center justify-center group ${
           isDragOver
             ? "border-green-400 bg-green-50 scale-[1.02] shadow-lg"
-            : isValidating
+            : isProcessing
               ? "border-blue-400 bg-blue-50"
               : "border-gray-300 hover:border-green-400 hover:bg-green-50/50 cursor-pointer"
-        } ${isValidating ? "cursor-not-allowed" : ""}`}
+        } ${isProcessing ? "cursor-not-allowed" : ""}`}
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -156,12 +161,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
               className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
                 isDragOver
                   ? "bg-gradient-to-br from-green-400 to-emerald-500 scale-110 rotate-12"
-                  : isValidating
+                  : isProcessing
                     ? "bg-gradient-to-br from-blue-400 to-blue-500 animate-pulse"
                     : "bg-gradient-to-br from-gray-400 to-gray-500 group-hover:from-green-400 group-hover:to-emerald-500 group-hover:scale-110"
               }`}
             >
-              {isValidating ? (
+              {isVerifying ? (
+                <Leaf className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              ) : isValidating ? (
                 <FileImage className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               ) : (
                 <Upload className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
@@ -175,35 +182,45 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
           {/* Content */}
           <div className="space-y-3 sm:space-y-4">
             <h3 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
-              {isDragOver ? "Drop your image here!" : isValidating ? "Processing image..." : "Upload Crop Image"}
+              {isDragOver
+                ? "Drop your leaf image here!"
+                : isVerifying
+                  ? "Verifying leaf image..."
+                  : isValidating
+                    ? "Processing image..."
+                    : "Upload Leaf Image"}
             </h3>
             <p className="text-gray-600 text-base sm:text-lg leading-relaxed px-2">
               {isDragOver
-                ? "Release to start analysis"
-                : isValidating
-                  ? "Validating and preparing your image"
-                  : "Drag and drop an image here, or tap to browse"}
+                ? "Release to start leaf verification"
+                : isVerifying
+                  ? "Checking if the uploaded image contains a leaf"
+                  : isValidating
+                    ? "Validating and preparing your image"
+                    : "Drag and drop a leaf image here, or tap to browse"}
             </p>
           </div>
 
           {/* Progress Bar */}
-          {isValidating && (
+          {(isValidating || isVerifying) && (
             <div className="w-full space-y-2">
-              <Progress value={uploadProgress} className="h-2" />
-              <p className="text-sm text-gray-500">{uploadProgress}% complete</p>
+              <Progress value={isVerifying ? 50 : uploadProgress} className="h-2" />
+              <p className="text-sm text-gray-500">
+                {isVerifying ? "Verifying leaf..." : `${uploadProgress}% complete`}
+              </p>
             </div>
           )}
 
           {/* File Requirements */}
-          {!isValidating && (
+          {!isProcessing && (
             <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
               <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl shadow-sm border border-gray-100">
                 <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
                 <span className="text-gray-700 text-xs sm:text-sm">JPG, PNG, JPEG</span>
               </div>
               <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl shadow-sm border border-gray-100">
-                <Camera className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
-                <span className="text-gray-700 text-xs sm:text-sm">Max 10MB</span>
+                <Leaf className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                <span className="text-gray-700 text-xs sm:text-sm">Leaf Images Only</span>
               </div>
             </div>
           )}
@@ -225,34 +242,34 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
             <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-blue-900 mb-2 sm:mb-3 text-sm sm:text-base">📸 Photography Tips</h4>
+            <h4 className="font-semibold text-blue-900 mb-2 sm:mb-3 text-sm sm:text-base">🍃 Leaf Photography Tips</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm text-blue-800">
               <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Use natural daylight</span>
+                  <span>Capture individual leaves clearly</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Focus on affected areas</span>
+                  <span>Focus on diseased areas</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Avoid shadows</span>
+                  <span>Use natural lighting</span>
                 </div>
               </div>
               <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Capture multiple symptoms</span>
+                  <span>Avoid blurry images</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Ensure sharp focus</span>
+                  <span>Include both sides if needed</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <span>Include healthy parts</span>
+                  <span>Ensure leaf fills the frame</span>
                 </div>
               </div>
             </div>
@@ -260,19 +277,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
         </div>
       </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+      {/* Alternative Upload Button */}
+      {!isProcessing && (
+        <div className="text-center">
+          <Button
+            onClick={handleClick}
+            variant="outline"
+            className="border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 px-6 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 text-sm sm:text-base"
+          >
+            <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            Browse Leaf Images
+          </Button>
+        </div>
+      )}
 
-      <style>{`
-        .animation-delay-1000 {
-          animation-delay: 1s;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-3000 {
-          animation-delay: 3s;
-        }
-      `}</style>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        disabled={isProcessing}
+      />
     </div>
   )
 }

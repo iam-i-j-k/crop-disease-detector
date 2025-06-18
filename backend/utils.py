@@ -10,21 +10,20 @@ import os
 def load_model():
     # Define relative paths
     base_dir = os.path.dirname(__file__)
-    model_path = os.path.join(base_dir, "backend/model/model.pth")
-    class_path = os.path.join(base_dir, "backend/model/class_names.json")
+    model_path = os.path.join(base_dir, "model/model.pth")
+    class_path = os.path.join(base_dir, "model/class_names.json")
 
     # Load class labels
     with open(class_path) as f:
         class_names = json.load(f)
 
     # Transforms
-    global transform
-    transform = transforms.Compose([
+    global leaf_transform
+    leaf_transform = transforms.Compose([
         transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
+        transforms.ToTensor()
     ])
+
 
     # Load model
     model = models.resnet18(pretrained=False)
@@ -36,7 +35,7 @@ def load_model():
 
 def predict_disease(model, class_names, image: Image.Image):
     print("[DEBUG] Image received for prediction.")
-    input_tensor = transform(image).unsqueeze(0)
+    input_tensor = leaf_transform(image).unsqueeze(0)
     with torch.no_grad():
         output = model(input_tensor)
         print("[DEBUG] Model output:", output)
@@ -45,14 +44,15 @@ def predict_disease(model, class_names, image: Image.Image):
     
 def load_leaf_classifier():
     base_dir = os.path.dirname(__file__)
-    model_path = os.path.join(base_dir, "../model/leaf_classifier.pth")
+    model_path = os.path.join(base_dir, "model/leaf_binary_classifier.pth")
 
-    model = models.resnet18(pretrained=False)
-    model.fc = nn.Linear(model.fc.in_features, 2)  # Binary classification: leaf / not leaf
+    model = models.mobilenet_v2(pretrained=True)  # ✅ Match training
+    model.classifier[1] = nn.Linear(model.last_channel, 2)
     model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))
     model.eval()
 
     return model
+
 
 
 def get_treatment(disease):
@@ -61,14 +61,16 @@ def get_treatment(disease):
         treatment_dict = json.load(f)
     return treatment_dict.get(disease, "No treatment recommendation available.")
 
-def is_leaf_image(model, image: Image.Image, threshold: float = 0.5) -> bool:
-    input_tensor = transform(image).unsqueeze(0)
+def is_leaf_image(model, image: Image.Image, threshold: float = 0.8) -> bool:
+    input_tensor = leaf_transform(image).unsqueeze(0)  # use correct transform
 
     with torch.no_grad():
         output = model(input_tensor)
         probabilities = torch.softmax(output, dim=1)
-        leaf_confidence = probabilities[0][1].item()  # Confidence for "leaf" class
+        print("[DEBUG] Probabilities:", probabilities)
+        leaf_confidence = probabilities[0][0].item()
 
         print(f"[DEBUG] Leaf confidence: {leaf_confidence:.4f}")
         return leaf_confidence > threshold
+
 

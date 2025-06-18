@@ -206,4 +206,3 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ currentStep }) =
     </div>
   )
 }
-
