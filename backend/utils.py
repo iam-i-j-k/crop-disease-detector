@@ -61,7 +61,7 @@ def get_treatment(disease):
         treatment_dict = json.load(f)
     return treatment_dict.get(disease, "No treatment recommendation available.")
 
-def is_leaf_image(model, image: Image.Image, threshold: float = 0.8) -> bool:
+def is_leaf_image(model, image: Image.Image, threshold: float = 0.6) -> bool:
     input_tensor = leaf_transform(image).unsqueeze(0)  # use correct transform
 
     with torch.no_grad():
