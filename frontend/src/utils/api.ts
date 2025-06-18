@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'; // Update with your actual API base URL
+const API_BASE_URL = 'https://crop-disease-detector-y3dn.onrender.com'; // Update with your actual API base URL
 
 export interface PredictionResponse {
   prediction: string;
