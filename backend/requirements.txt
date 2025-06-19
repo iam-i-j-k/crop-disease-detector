@@ -1,0 +1,23 @@
+--index-url https://download.pytorch.org/whl/cpu
+
+# Core framework
+fastapi
+uvicorn
+
+# Model serving (CPU only)
+torch==2.1.2+cpu
+torchvision==0.16.2+cpu
+pillow
+
+# File handling & multipart
+python-multipart
+
+# Hugging Face Hub for model storage
+huggingface_hub
+
+# Optional: Only if you're using these
+# tqdm               # progress bars (remove if unused)
+# numpy              # usually safe to keep
+# scikit-learn       # remove if not doing metrics/preprocessing
+
+# DO NOT add matplotlib or full CUDA packages
