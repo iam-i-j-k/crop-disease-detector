@@ -5,8 +5,8 @@ fastapi
 uvicorn
 
 # Model serving (CPU only)
-torch==2.1.2+cpu
-torchvision==0.16.2+cpu
+torch
+torchvision
 pillow
 
 # File handling & multipart
