@@ -31,7 +31,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect, isVerif
     }
 
     // File size minimum (to ensure quality)
-    if (file.size < 10 * 1024) {
+    if (file.size < 5 * 1024) {
       return "File size too small. Please select a higher quality image"
     }
 
