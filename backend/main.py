@@ -57,4 +57,4 @@ async def predict(file: UploadFile = File(...)):
 
 @app.get("/ping")
 def ping():
-    return JSONResponse(content={"status": "alive"}, status_code=200)
+    return {"status": "alive"}
