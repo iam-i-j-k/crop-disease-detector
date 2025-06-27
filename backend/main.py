@@ -53,3 +53,8 @@ async def predict(file: UploadFile = File(...)):
         "prediction": disease,
         "treatment": treatment
     }
+
+
+@app.get("/ping")
+def ping():
+    return JSONResponse(content={"status": "alive"}, status_code=200)
