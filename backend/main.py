@@ -15,7 +15,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "https://crop-disease-detector-zeta.vercel.app"],
+    allow_origins=["*", "https://crop-disease-detector-olive.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
